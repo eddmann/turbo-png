@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use anyhow::{Context, Result, bail};
 use imagequant::{self, RGBA};
-use oxipng::{self, Deflaters, Options, StripChunks};
+use oxipng::{self, Deflaters, Options, RowFilter, StripChunks, indexset};
 use png::chunk::ChunkType;
 use png::{self, AdaptiveFilterType, BitDepth, ColorType, Compression, Encoder, FilterType};
 
@@ -72,8 +72,8 @@ fn process_file(path: &Path, job: &CompressJob<'_>) -> Result<FileOutcome> {
     let quantized =
         quantize_image(&decoded, job.options.quality).context("quantizing image to palette")?;
     let palette_note = format!("{} colors", quantized.palette.len());
-    let indexed_png =
-        encode_indexed_png(&quantized, &decoded, &preserved).context("encoding indexed PNG")?;
+    let indexed_png = encode_indexed_png(&quantized, &decoded, &preserved, job.options.quality)
+        .context("encoding indexed PNG")?;
 
     let mut options = configure_options(job.common, job.options);
     options.strip = strip_policy.clone();
@@ -170,7 +170,9 @@ fn decode_rgba(bytes: &[u8]) -> Result<DecodedImage> {
 fn quantize_image(image: &DecodedImage, quality: u8) -> Result<QuantizedImage> {
     let mut attr = imagequant::new();
     let quality = quality.max(1).min(100);
-    attr.set_quality(quality.into(), 100)?;
+    let (quality_min, quality_target) = select_quality_window(quality);
+    attr.set_quality(quality_min, quality_target)?;
+    attr.set_max_colors(select_palette_cap(quality))?;
     attr.set_speed(i32::from(select_speed(quality)))?;
 
     let mut liq_image = attr.new_image_borrowed(
@@ -190,6 +192,7 @@ fn encode_indexed_png(
     quantized: &QuantizedImage,
     decoded: &DecodedImage,
     preserved: &PreservedChunks,
+    quality: u8,
 ) -> Result<Vec<u8>> {
     if quantized.palette.is_empty() {
         bail!("quantizer returned an empty palette");
@@ -224,8 +227,13 @@ fn encode_indexed_png(
             encoder.set_trns(alpha_bytes);
         }
         encoder.set_compression(Compression::Best);
-        encoder.set_filter(FilterType::Paeth);
-        encoder.set_adaptive_filter(AdaptiveFilterType::Adaptive);
+        if is_photo_quality(quality) {
+            encoder.set_filter(FilterType::Paeth);
+            encoder.set_adaptive_filter(AdaptiveFilterType::Adaptive);
+        } else {
+            encoder.set_filter(FilterType::NoFilter);
+            encoder.set_adaptive_filter(AdaptiveFilterType::NonAdaptive);
+        }
 
         let mut writer = encoder.write_header()?;
         for chunk in &preserved.before_idat {
@@ -299,11 +307,54 @@ fn extract_preserved_chunks(data: &[u8], policy: &StripChunks) -> Result<Preserv
 fn configure_options(_common: &CommonOptions, opts: &CompressOptions) -> Options {
     let mut options = Options::max_compression();
     options.fast_evaluation = false;
+    if is_photo_quality(opts.quality) {
+        options.filter = indexset! {
+            RowFilter::None,
+            RowFilter::Sub,
+            RowFilter::Up,
+            RowFilter::Average,
+            RowFilter::Paeth
+        };
+    } else {
+        options.filter = indexset! { RowFilter::None };
+    }
+    options.bit_depth_reduction = false;
+    options.color_type_reduction = false;
+    options.palette_reduction = false;
+    options.grayscale_reduction = false;
     let iterations = select_zopfli_iterations(opts.quality);
     options.deflate = Deflaters::Zopfli {
         iterations: NonZeroU8::new(iterations).expect("iterations > 0"),
     };
     options
+}
+
+fn select_quality_window(quality: u8) -> (u8, u8) {
+    match quality {
+        98..=100 => (85, 99),
+        95..=97 => (80, 96),
+        85..=94 => (70, 92),
+        70..=84 => (60, 88),
+        55..=69 => (45, 82),
+        40..=54 => (35, 76),
+        _ => (25, 68),
+    }
+}
+
+fn select_palette_cap(quality: u8) -> u32 {
+    match quality {
+        98..=100 => 96,
+        95..=97 => 48,
+        85..=94 => 32,
+        70..=84 => 24,
+        55..=69 => 20,
+        40..=54 => 16,
+        _ => 12,
+    }
+}
+
+fn is_photo_quality(quality: u8) -> bool {
+    quality >= 98
 }
 
 fn select_speed(quality: u8) -> u8 {

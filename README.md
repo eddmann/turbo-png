@@ -2,13 +2,15 @@
 
 ![TurboPNG](docs/heading_compressed.png)
 
-TurboPNG is a high-performance Rust CLI for lossless optimization and visually lossless compression of PNG images—no uploads required.
+TurboPNG is a high-performance Rust CLI for lossless optimization and size-focused PNG compression.
+
+> Built after I got tired of uploading ChatGPT-generated PNGs to random compression websites, this CLI handles lossless and size-focused compression for those bloated outputs.
 
 ## Features
 
 - Two modes:
   - `optimize`: maximally lossless transformation (metadata stripping, chunk reordering, DEFLATE refinement).
-  - `compress`: palette quantization + quality-controlled tweaks for the smallest visually lossless PNGs.
+  - `compress`: aggressive palette squeezing (≤32 colors by default) with filterless Zopfli for graphics; `--quality 98` unlocks a photo-friendly palette + adaptive filters.
 - Multi-file and directory processing with automatic recursion and deduplication.
 - Fancy progress UI (Indicatif) or quiet logging.
 - Chunk and metadata retention controls (`--keep-metadata`).
@@ -58,15 +60,17 @@ cargo run --release -- --mode optimize --zopfli assets/logo.png
 
 Creates `assets/logo_optimized.png` with identical pixels and improved size.
 
-### Compress Mode (Visually Lossless)
+### Compress Mode (Graphics-Focused)
 
-Quantizes colors, applies dithering, and recompresses with Zopfli. Tune quality (1–100, default 90):
+Aims for the smallest PNGs on flat artwork by quantizing to a tight palette (typically ≤32 colors), disabling PNG filtering, and recompressing with Zopfli. Tune quality (1–100, default 90):
 
 ```bash
 cargo run --release -- --mode compress --quality 70 screenshots/*.png
 ```
 
 Outputs `*_compressed.png`, reporting palette size, savings %, and runtime.
+
+> Quality controls the palette cap (roughly 12–48 colors) and dithering strength. `--quality 98` activates a photo-friendly preset (≈96 colors + adaptive filters) for smoother gradients and photographic content.
 
 Additional option:
 
