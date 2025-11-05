@@ -169,7 +169,7 @@ fn decode_rgba(bytes: &[u8]) -> Result<DecodedImage> {
 
 fn quantize_image(image: &DecodedImage, quality: u8) -> Result<QuantizedImage> {
     let mut attr = imagequant::new();
-    let quality = quality.max(1).min(100);
+    let quality = quality.clamp(1, 100);
     let (quality_min, quality_target) = select_quality_window(quality);
     attr.set_quality(quality_min, quality_target)?;
     attr.set_max_colors(select_palette_cap(quality))?;
@@ -251,7 +251,7 @@ fn encode_indexed_png(
 
 fn extract_preserved_chunks(data: &[u8], policy: &StripChunks) -> Result<PreservedChunks> {
     const SIGNATURE: [u8; 8] = [0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
-    if data.len() < SIGNATURE.len() || &data[..8] != SIGNATURE {
+    if data.len() < SIGNATURE.len() || data[..8] != SIGNATURE {
         bail!("file is not a valid PNG");
     }
 
