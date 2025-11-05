@@ -1,6 +1,6 @@
-# PNG Compressor CLI
+# TurboPNG
 
-High-performance Rust CLI for lossless optimization and visually lossless compression of PNG images—no uploads required.
+TurboPNG is a high-performance Rust CLI for lossless optimization and visually lossless compression of PNG images—no uploads required.
 
 ## Features
 
@@ -21,12 +21,12 @@ High-performance Rust CLI for lossless optimization and visually lossless compre
 ## Getting Started
 
 ```bash
-git clone https://github.com/your-org/png-compressor.git
-cd png-compressor
+git clone https://github.com/your-org/turbopng.git
+cd TurboPNG
 cargo build --release
 ```
 
-The compiled binary is located at `target/release/png-compressor`.
+The compiled binary is located at `target/release/turbo-png`.
 
 ## Usage
 

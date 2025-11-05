@@ -17,7 +17,7 @@ fn cli_deduplicates_inputs() -> Result<(), Box<dyn Error>> {
     let second = fixtures::write_unoptimized_rgba(&temp, "images/second.png", 8, 12);
     let extra = fixtures::write_unoptimized_rgba(&temp, "extra.png", 6, 6);
 
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "optimize", "--no-progress"])
         .arg(&extra)
         .arg(images_dir.path())
@@ -40,7 +40,7 @@ fn cli_errors_on_missing_input() -> Result<(), Box<dyn Error>> {
     let temp = TempDir::new()?;
     let missing = temp.path().join("missing.png");
 
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "optimize", "--no-progress"])
         .arg(&missing)
         .assert()
@@ -56,7 +56,7 @@ fn dry_run_no_write() -> Result<(), Box<dyn Error>> {
     let input = fixtures::write_unoptimized_rgba(&temp, "dry.png", 8, 8);
 
     let compressed_output = fixtures::derived_output_path(&input, "_compressed.png");
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "compress", "--dry-run", "--no-progress"])
         .arg(&input)
         .assert()
@@ -67,7 +67,7 @@ fn dry_run_no_write() -> Result<(), Box<dyn Error>> {
     );
 
     let optimized_output = fixtures::derived_output_path(&input, "_optimized.png");
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "optimize", "--dry-run", "--no-progress"])
         .arg(&input)
         .assert()

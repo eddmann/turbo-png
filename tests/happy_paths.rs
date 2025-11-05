@@ -15,7 +15,7 @@ fn optimize_smaller_output() -> Result<(), Box<dyn Error>> {
     let original_size = fixtures::file_size(&input);
     let original_pixels = fixtures::decode_rgba(&input);
 
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "optimize", "--no-progress"])
         .arg(&input)
         .assert()
@@ -46,7 +46,7 @@ fn compress_palette_reduction() -> Result<(), Box<dyn Error>> {
     let original_pixels = fixtures::decode_rgba(&input);
     let original_unique = fixtures::unique_color_count(&original_pixels);
 
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "compress", "--quality", "80", "--no-progress"])
         .arg(&input)
         .assert()
@@ -82,7 +82,7 @@ fn compress_low_quality_clamp_behaves() -> Result<(), Box<dyn Error>> {
 
     let original_pixels = fixtures::decode_rgba(&input);
 
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "compress", "--quality", "20", "--no-progress"])
         .arg(&input)
         .assert()
@@ -111,7 +111,7 @@ fn threads_option_effect() -> Result<(), Box<dyn Error>> {
         .map(|i| fixtures::write_unoptimized_rgba(&temp, &format!("batch{i}.png"), 8, 8))
         .collect();
 
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "optimize", "--threads", "1", "--no-progress"])
         .args(inputs.iter().map(|p| p.as_os_str()))
         .assert()

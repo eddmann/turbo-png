@@ -599,24 +599,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "png-compressor"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "assert_cmd",
- "assert_fs",
- "clap",
- "imagequant",
- "indicatif",
- "oxipng",
- "png",
- "predicates",
- "rayon",
- "tempfile",
- "walkdir",
-]
-
-[[package]]
 name = "portable-atomic"
 version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -864,6 +846,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f60246a4944f24f6e018aa17cdeffb7818b76356965d03b07d6a9886e8962185"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "turbo-png"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "assert_cmd",
+ "assert_fs",
+ "clap",
+ "imagequant",
+ "indicatif",
+ "oxipng",
+ "png",
+ "predicates",
+ "rayon",
+ "tempfile",
+ "walkdir",
 ]
 
 [[package]]

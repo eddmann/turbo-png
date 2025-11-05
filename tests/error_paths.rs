@@ -21,7 +21,7 @@ fn cli_errors_on_unwritable_output_directory() -> Result<(), Box<dyn Error>> {
     ro_perms.set_mode(0o555);
     fs::set_permissions(parent, ro_perms)?;
 
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "optimize", "--no-progress"])
         .arg(&input)
         .assert()
@@ -42,7 +42,7 @@ fn compress_without_overwrite_fails_when_output_exists() -> Result<(), Box<dyn E
     fs::write(&output, b"existing").expect("failed to seed output");
     let original_size = fixtures::file_size(&output);
 
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "compress", "--no-progress"])
         .arg(&input)
         .assert()
@@ -62,14 +62,14 @@ fn overwrite_flag_behavior() -> Result<(), Box<dyn Error>> {
     fs::write(&output, b"placeholder").expect("failed to precreate output");
     let placeholder_size = fixtures::file_size(&output);
 
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "optimize", "--no-progress"])
         .arg(&input)
         .assert()
         .failure();
     assert_eq!(placeholder_size, fixtures::file_size(&output));
 
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "optimize", "--no-progress", "--overwrite"])
         .arg(&input)
         .assert()

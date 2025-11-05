@@ -12,7 +12,7 @@ fn compress_safe_keeps_display_chunks_only() -> Result<(), Box<dyn Error>> {
     let input = fixtures::write_fixture(&temp, "sample.png");
     let output = fixtures::derived_output_path(&input, "_compressed.png");
 
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "compress", "--no-progress"])
         .arg(&input)
         .assert()
@@ -34,7 +34,7 @@ fn compress_with_keep_metadata_retains_all_chunks() -> Result<(), Box<dyn Error>
     let input = fixtures::write_fixture(&temp, "sample.png");
     let output = fixtures::derived_output_path(&input, "_compressed.png");
 
-    Command::new(assert_cmd::cargo::cargo_bin!("png-compressor"))
+    Command::new(assert_cmd::cargo::cargo_bin!("turbo-png"))
         .args(["--mode", "compress", "--no-progress", "--keep-metadata"])
         .arg(&input)
         .assert()

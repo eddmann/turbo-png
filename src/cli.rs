@@ -6,7 +6,12 @@ use clap::{ArgAction, Parser, ValueEnum};
 
 /// Command-line interface definition.
 #[derive(Debug, Parser)]
-#[command(author, version, about = "High-performance PNG optimizer & compressor", long_about = None)]
+#[command(
+    author,
+    version,
+    about = "TurboPNG: high-performance PNG optimizer & compressor",
+    long_about = None
+)]
 pub struct Cli {
     /// One or more PNG file paths (files or directories are expanded).
     #[arg(required = true, value_name = "PATH", num_args = 1..)]
