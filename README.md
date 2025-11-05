@@ -1,5 +1,7 @@
 # TurboPNG
 
+![TurboPNG](docs/heading_compressed.png)
+
 TurboPNG is a high-performance Rust CLI for lossless optimization and visually lossless compression of PNG images—no uploads required.
 
 ## Features
