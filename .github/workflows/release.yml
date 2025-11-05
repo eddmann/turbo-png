@@ -1,0 +1,144 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.0.0 or v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: release-${{ github.event.inputs.version }}
+  cancel-in-progress: false
+
+env:
+  VERSION_INPUT: ${{ github.event.inputs.version }}
+  RELEASE_VERSION: ${{ startsWith(github.event.inputs.version, 'v') && github.event.inputs.version || format('v{0}', github.event.inputs.version) }}
+  CARGO_TERM_COLOR: always
+  BIN_NAME: turbo-png
+  RUST_TOOLCHAIN: 1.91.0
+
+jobs:
+  build:
+    name: Build ${{ matrix.artifact }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: linux-x86_64
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact: linux-aarch64
+            needs-cross-toolchain: true
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: windows-x86_64
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            artifact: windows-aarch64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact: macos-x86_64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: macos-aarch64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate version input
+        run: |
+          if [[ -z "${VERSION_INPUT}" ]]; then
+            echo "Version input is required." >&2
+            exit 1
+          fi
+
+      - name: Install toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: ${{ matrix.target }}
+          override: true
+
+      - name: Install Linux aarch64 linker
+        if: matrix.needs-cross-toolchain == true
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+
+      - name: Prime cargo cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          target: ${{ matrix.target }}
+
+      - name: cargo build --release (target ${{ matrix.target }})
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package artifact
+        run: |
+          mkdir -p dist
+          binary_dir="target/${{ matrix.target }}/release"
+          binary_name="${BIN_NAME}"
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            binary_name="${binary_name}.exe"
+          fi
+
+          if [[ ! -f "${binary_dir}/${binary_name}" ]]; then
+            echo "Expected binary ${binary_dir}/${binary_name} not found" >&2
+            ls -R "${binary_dir}"
+            exit 1
+          fi
+
+          archive="dist/${BIN_NAME}-${RELEASE_VERSION}-${{ matrix.artifact }}.tar.gz"
+          tar -C "${binary_dir}" -czf "${archive}" "${binary_name}"
+          echo "ARCHIVE_PATH=${archive}" >> $GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-${{ env.RELEASE_VERSION }}
+          path: ${{ env.ARCHIVE_PATH }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - name: Ensure release tag does not exist
+        run: |
+          if git ls-remote --exit-code "https://github.com/${{ github.repository }}" "refs/tags/${RELEASE_VERSION}" > /dev/null; then
+            echo "Tag ${RELEASE_VERSION} already exists. Choose a new version or delete the existing tag." >&2
+            exit 1
+          fi
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: ${{ env.RELEASE_VERSION }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
