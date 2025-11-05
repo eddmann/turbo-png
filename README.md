@@ -21,8 +21,8 @@ TurboPNG is a high-performance Rust CLI for lossless optimization and visually l
 ## Getting Started
 
 ```bash
-git clone https://github.com/your-org/turbopng.git
-cd TurboPNG
+git clone https://github.com/eddmann/turbo-png.git
+cd turbo-png
 cargo build --release
 ```
 
