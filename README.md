@@ -126,38 +126,22 @@ Outputs `*_compressed.png`, reporting palette size, savings %, and runtime.
 
 - `--quality <LEVEL>`: Palette quantization quality (1–100, default `90`).
 
-## Metadata Retention Examples
+## Default Behavior
+
+### Metadata retention
+
+TurboPNG mirrors oxipng’s `--strip safe` policy, keeping display-critical metadata while removing unneeded ancillary chunks. Use `--keep-metadata` to preserve everything:
 
 ```bash
 # Preserve all metadata verbatim
 turbo-png --keep-metadata image.png
 
-# Default behavior keeps display-critical metadata (ICC profiles, color space,
-# and APNG animation chunks) consistent with oxipng’s `--strip safe` mode.
+# Default behavior keeps ICC profiles, color space, and APNG animation data.
 ```
 
-## Progress UI
+### Progress UI
 
-By default the tool displays:
-
-- Per-file spinner with live status.
-- Overall progress bar (`processed/total`).
-- Summary line containing original vs optimized size, savings %, elapsed time, and optional notes.
-
-Disable with `--no-progress` for CI logs.
-
-## Roadmap / Ideas
-
-- PNG validation report prior to transform.
-- Optional WebP/AVIF fallback pipeline.
-- Config file for project-specific defaults.
-- Benchmark suite comparing external tools (e.g., pngquant, ImageOptim).
-
-## Contributing
-
-1. Fork and clone.
-2. `cargo fmt && cargo check` before submitting PRs.
-3. Add tests or sample fixtures when touching compression logic.
+The CLI renders a per-file spinner, an overall progress bar, and a summary line with original size, optimized size, savings, and runtime. Toggle quiet mode with `--no-progress` when running in CI.
 
 ## License
 
