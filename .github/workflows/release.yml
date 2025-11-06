@@ -24,7 +24,6 @@ env:
   RELEASE_VERSION: ${{ startsWith(github.event.inputs.version, 'v') && github.event.inputs.version || format('v{0}', github.event.inputs.version) }}
   CARGO_TERM_COLOR: always
   BIN_NAME: turbo-png
-  RUST_TOOLCHAIN: 1.91.0
 
 jobs:
   build:
@@ -67,12 +66,9 @@ jobs:
       - name: Install toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
           target: ${{ matrix.target }}
+          cache-targets: ${{ matrix.target }}
           override: true
-
-      - name: Ensure target std is installed
-        run: rustup target add --toolchain "${RUST_TOOLCHAIN}" "${{ matrix.target }}"
 
       - name: Install Linux aarch64 linker
         if: matrix.needs-cross-toolchain == true
@@ -81,11 +77,6 @@ jobs:
           sudo apt-get install -y gcc-aarch64-linux-gnu
           echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
           echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-
-      - name: Prime cargo cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          cache-targets: ${{ matrix.target }}
 
       - name: cargo build --release (target ${{ matrix.target }})
         run: cargo build --release --target ${{ matrix.target }}
