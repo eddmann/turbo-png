@@ -71,6 +71,9 @@ jobs:
           targets: ${{ matrix.target }}
           override: true
 
+      - name: Ensure target std is installed
+        run: rustup target add --toolchain "${RUST_TOOLCHAIN}" "${{ matrix.target }}"
+
       - name: Install Linux aarch64 linker
         if: matrix.needs-cross-toolchain == true
         run: |
