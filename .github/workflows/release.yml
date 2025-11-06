@@ -67,7 +67,7 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: ${{ matrix.target }}
-          cache-targets: ${{ matrix.target }}
+          cache: true
           override: true
 
       - name: Install Linux aarch64 linker
