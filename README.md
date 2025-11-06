@@ -6,23 +6,71 @@ TurboPNG is a high-performance Rust CLI for lossless optimization and size-focus
 
 > Built after I got tired of uploading ChatGPT-generated PNGs to random compression websites, this CLI handles lossless and size-focused compression for those bloated outputs.
 
+## Quick Start
+
+```bash
+turbo-png path/to/image.png
+```
+
+The default `optimize` mode keeps pixels identical while writing a new file next to the source (for example `image_optimized.png`).
+
 ## Features
 
 - Two modes:
   - `optimize`: maximally lossless transformation (metadata stripping, chunk reordering, DEFLATE refinement).
   - `compress`: aggressive palette squeezing (≤32 colors by default) with filterless Zopfli for graphics; `--quality 98` unlocks a photo-friendly palette + adaptive filters.
 - Multi-file and directory processing with automatic recursion and deduplication.
-- Fancy progress UI (Indicatif) or quiet logging.
+- Indicatif-based progress UI with optional quiet logging.
 - Chunk and metadata retention controls (`--keep-metadata`).
 - Atomic writes with `_optimized.png` / `_compressed.png` suffixes.
 - Dry-run summaries without touching disk.
 
 ## Requirements
 
-- Rust 1.74+ (tested on stable).
+- Rust 1.91+ (tracked via `rust-toolchain.toml`).
 - libclang toolchain (for `imagequant`, pulled automatically via Cargo).
 
-## Getting Started
+## Installation
+
+### Prebuilt binaries (recommended)
+
+1. Visit the [latest GitHub release](https://github.com/eddmann/turbo-png/releases) and download the archive that matches your platform. Release files follow the pattern `turbo-png-vX.Y.Z-<platform>.tar.gz` (for example `macos-aarch64`, `linux-x86_64`, or `windows-x86_64`).
+2. Extract the archive:
+
+   - macOS / Linux:
+
+     ```bash
+     tar -xzf turbo-png-vX.Y.Z-macos-aarch64.tar.gz
+     ```
+
+   - Windows (PowerShell):
+
+     ```powershell
+     tar -xf .\turbo-png-vX.Y.Z-windows-x86_64.tar.gz
+     ```
+
+3. Move the `turbo-png` binary (or `turbo-png.exe` on Windows) somewhere on your `PATH`, such as `/usr/local/bin`, `~/bin`, or `%USERPROFILE%\AppData\Local\Microsoft\WindowsApps`.
+4. Confirm everything works:
+
+   ```bash
+   turbo-png --version
+   ```
+
+> **macOS Gatekeeper tip:** If macOS reports that `turbo-png` is from an unidentified developer, right-click the binary in Finder, choose **Open**, and confirm. Alternatively, remove the quarantine attribute:
+>
+> ```bash
+> sudo xattr -dr com.apple.quarantine /path/to/turbo-png
+> ```
+
+### Install with Cargo
+
+If you prefer to build from source or need the latest commit:
+
+```bash
+cargo install --git https://github.com/eddmann/turbo-png.git --locked
+```
+
+### Build locally (development workflow)
 
 ```bash
 git clone https://github.com/eddmann/turbo-png.git
@@ -30,13 +78,15 @@ cd turbo-png
 cargo build --release
 ```
 
-The compiled binary is located at `target/release/turbo-png`.
+The compiled binary will be at `target/release/turbo-png`.
 
 ## Usage
 
 ```bash
-cargo run --release -- [OPTIONS] <PATH>...
+turbo-png [OPTIONS] <PATH>...
 ```
+
+> Working on the project locally? Use `cargo run --release --` as a drop-in replacement for `turbo-png` in the examples below.
 
 ### Global Options
 
@@ -55,7 +105,7 @@ cargo run --release -- [OPTIONS] <PATH>...
 Delivers the tightest lossless PNG possible. Enable Zopfli for extra squeeze:
 
 ```bash
-cargo run --release -- --mode optimize --zopfli assets/logo.png
+turbo-png --mode optimize --zopfli assets/logo.png
 ```
 
 Creates `assets/logo_optimized.png` with identical pixels and improved size.
@@ -65,24 +115,22 @@ Creates `assets/logo_optimized.png` with identical pixels and improved size.
 Aims for the smallest PNGs on flat artwork by quantizing to a tight palette (typically ≤32 colors), disabling PNG filtering, and recompressing with Zopfli. Tune quality (1–100, default 90):
 
 ```bash
-cargo run --release -- --mode compress --quality 70 screenshots/*.png
+turbo-png --mode compress --quality 70 screenshots/*.png
 ```
 
 Outputs `*_compressed.png`, reporting palette size, savings %, and runtime.
 
 > Quality controls the palette cap (roughly 12–48 colors) and dithering strength. `--quality 98` activates a photo-friendly preset (≈96 colors + adaptive filters) for smoother gradients and photographic content.
 
-Additional option:
+**Mode-specific flag**
 
-| Flag                | Description                                         |
-| ------------------- | --------------------------------------------------- |
-| `--quality <LEVEL>` | Palette quantization quality (1–100, default `90`). |
+- `--quality <LEVEL>`: Palette quantization quality (1–100, default `90`).
 
 ## Metadata Retention Examples
 
 ```bash
 # Preserve all metadata verbatim
-cargo run --release -- --keep-metadata image.png
+turbo-png --keep-metadata image.png
 
 # Default behavior keeps display-critical metadata (ICC profiles, color space,
 # and APNG animation chunks) consistent with oxipng’s `--strip safe` mode.
@@ -113,4 +161,4 @@ Disable with `--no-progress` for CI logs.
 
 ## License
 
-Dual-licensed for GPL/commercial usage via the `imagequant` dependency. Consult upstream licensing if you intend to redistribute binaries. All additional project code is released under MIT unless otherwise noted.
+TurboPNG relies on `imagequant`, which is dual-licensed for GPL/commercial use. Consult upstream licensing before redistributing binaries. All additional project code is released under MIT unless otherwise noted.
