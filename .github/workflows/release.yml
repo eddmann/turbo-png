@@ -55,7 +55,7 @@ jobs:
             artifact: macos-aarch64
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Validate version input
         run: |
@@ -68,7 +68,7 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-          targets: ${{ matrix.target }}
+          target: ${{ matrix.target }}
           override: true
 
       - name: Ensure target std is installed
@@ -85,7 +85,7 @@ jobs:
       - name: Prime cargo cache
         uses: Swatinem/rust-cache@v2
         with:
-          target: ${{ matrix.target }}
+          cache-targets: ${{ matrix.target }}
 
       - name: cargo build --release (target ${{ matrix.target }})
         run: cargo build --release --target ${{ matrix.target }}
