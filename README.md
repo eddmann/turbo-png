@@ -32,7 +32,13 @@ The default `optimize` mode keeps pixels identical while writing a new file next
 
 ## Installation
 
-### Prebuilt binaries (recommended)
+### Homebrew (Recommended)
+
+```bash
+brew install eddmann/tap/turbo-png
+```
+
+### Prebuilt binaries
 
 1. Visit the [latest GitHub release](https://github.com/eddmann/turbo-png/releases) and download the archive that matches your platform. Release files follow the pattern `turbo-png-vX.Y.Z-<platform>.tar.gz` (for example `macos-aarch64`, `linux-x86_64`, or `windows-x86_64`).
 2. Extract the archive:

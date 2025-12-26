@@ -136,3 +136,29 @@ jobs:
           files: artifacts/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew tap
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION_NUM="${RELEASE_VERSION#v}"
+          SHA_ARM=$(shasum -a 256 artifacts/macos-aarch64-${RELEASE_VERSION}/${BIN_NAME}-${RELEASE_VERSION}-macos-aarch64.tar.gz | cut -d' ' -f1)
+          SHA_X64=$(shasum -a 256 artifacts/macos-x86_64-${RELEASE_VERSION}/${BIN_NAME}-${RELEASE_VERSION}-macos-x86_64.tar.gz | cut -d' ' -f1)
+
+          git clone https://x-access-token:${TAP_TOKEN}@github.com/eddmann/homebrew-tap.git
+          cd homebrew-tap
+
+          # Update version
+          sed -i "s/version \".*\"/version \"${VERSION_NUM}\"/" Formula/turbo-png.rb
+
+          # Update ARM SHA256 (within on_arm block)
+          sed -i "/on_arm/,/end/{s/sha256 \"[a-f0-9]*\"/sha256 \"${SHA_ARM}\"/;}" Formula/turbo-png.rb
+
+          # Update Intel SHA256 (within on_intel block)
+          sed -i "/on_intel/,/end/{s/sha256 \"[a-f0-9]*\"/sha256 \"${SHA_X64}\"/;}" Formula/turbo-png.rb
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/turbo-png.rb
+          git commit -m "chore(turbo-png): update to ${VERSION_NUM}"
+          git push
