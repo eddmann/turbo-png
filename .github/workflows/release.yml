@@ -2,11 +2,6 @@ name: Release
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version (e.g. 1.0.0 or v1.0.0)'
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -15,13 +10,7 @@ defaults:
   run:
     shell: bash
 
-concurrency:
-  group: release-${{ github.event.inputs.version }}
-  cancel-in-progress: false
-
 env:
-  VERSION_INPUT: ${{ github.event.inputs.version }}
-  RELEASE_VERSION: ${{ startsWith(github.event.inputs.version, 'v') && github.event.inputs.version || format('v{0}', github.event.inputs.version) }}
   CARGO_TERM_COLOR: always
   BIN_NAME: turbo-png
 
@@ -56,12 +45,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Validate version input
+      - name: Extract version from changelog
+        id: version
         run: |
-          if [[ -z "${VERSION_INPUT}" ]]; then
-            echo "Version input is required." >&2
-            exit 1
-          fi
+          VERSION=$(sed -n 's/^## \[\([^]]*\)\].*/\1/p' CHANGELOG.md | head -1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "release_version=v$VERSION" >> $GITHUB_OUTPUT
 
       - name: Install toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -96,6 +85,7 @@ jobs:
             exit 1
           fi
 
+          RELEASE_VERSION="${{ steps.version.outputs.release_version }}"
           archive="dist/${BIN_NAME}-${RELEASE_VERSION}-${{ matrix.artifact }}.tar.gz"
           tar -C "${binary_dir}" -czf "${archive}" "${binary_name}"
           echo "ARCHIVE_PATH=${archive}" >> $GITHUB_ENV
@@ -103,7 +93,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}-${{ env.RELEASE_VERSION }}
+          name: ${{ matrix.artifact }}-${{ steps.version.outputs.release_version }}
           path: ${{ env.ARCHIVE_PATH }}
           if-no-files-found: error
 
@@ -114,8 +104,32 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Extract changelog
+        id: changelog
+        run: |
+          VERSION=$(sed -n 's/^## \[\([^]]*\)\].*/\1/p' CHANGELOG.md | head -1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "release_version=v$VERSION" >> $GITHUB_OUTPUT
+
+          CONTENT=$(awk '
+            /^## \[/ {
+              if (found) exit
+              found=1
+              next
+            }
+            found { print }
+          ' CHANGELOG.md)
+
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Ensure release tag does not exist
         run: |
+          RELEASE_VERSION="${{ steps.changelog.outputs.release_version }}"
           if git ls-remote --exit-code "https://github.com/${{ github.repository }}" "refs/tags/${RELEASE_VERSION}" > /dev/null; then
             echo "Tag ${RELEASE_VERSION} already exists. Choose a new version or delete the existing tag." >&2
             exit 1
@@ -129,9 +143,9 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.RELEASE_VERSION }}
-          name: ${{ env.RELEASE_VERSION }}
-          generate_release_notes: true
+          tag_name: ${{ steps.changelog.outputs.release_version }}
+          name: ${{ steps.changelog.outputs.release_version }}
+          body: ${{ steps.changelog.outputs.content }}
           fail_on_unmatched_files: true
           files: artifacts/**/*
         env:
@@ -141,6 +155,7 @@ jobs:
         env:
           TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
+          RELEASE_VERSION="${{ steps.changelog.outputs.release_version }}"
           VERSION_NUM="${RELEASE_VERSION#v}"
           SHA_ARM=$(shasum -a 256 artifacts/macos-aarch64-${RELEASE_VERSION}/${BIN_NAME}-${RELEASE_VERSION}-macos-aarch64.tar.gz | cut -d' ' -f1)
           SHA_X64=$(shasum -a 256 artifacts/macos-x86_64-${RELEASE_VERSION}/${BIN_NAME}-${RELEASE_VERSION}-macos-x86_64.tar.gz | cut -d' ' -f1)
