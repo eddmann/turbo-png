@@ -43,7 +43,7 @@ jobs:
             artifact: macos-aarch64
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Extract version from changelog
         id: version
@@ -91,7 +91,7 @@ jobs:
           echo "ARCHIVE_PATH=${archive}" >> $GITHUB_ENV
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}-${{ steps.version.outputs.release_version }}
           path: ${{ env.ARCHIVE_PATH }}
@@ -105,7 +105,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Extract changelog
         id: changelog
@@ -136,7 +136,7 @@ jobs:
           fi
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
